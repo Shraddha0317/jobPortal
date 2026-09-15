@@ -1,14 +1,19 @@
 package com.jobportal.job_portal_backend.service;
 
 
+import com.jobportal.job_portal_backend.dto.LoginRequest;
+import com.jobportal.job_portal_backend.dto.LoginResponse;
 import com.jobportal.job_portal_backend.dto.UserRequest;
 import com.jobportal.job_portal_backend.dto.UserResponse;
 import com.jobportal.job_portal_backend.entity.Users;
 //import com.jobportal.job_portal_backend.exception.EmailNotFoundException;
 import com.jobportal.job_portal_backend.exception.EmailAlreadyExistsException;
+import com.jobportal.job_portal_backend.exception.InvalidCredentialsException;
 import com.jobportal.job_portal_backend.exception.UserNotFoundException;
 import com.jobportal.job_portal_backend.repository.UserRepository;
 
+import com.jobportal.job_portal_backend.security.JwtService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,26 +23,30 @@ public class UserService {
 
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
 
-    public UserResponse CreateUser(UserRequest request){
+    public UserResponse CreateUser(UserRequest request) {
 
-        if(userRepository.findByUserEmail(request.getEmail()).isPresent()){
+        if (userRepository.findByUserEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyExistsException("User with email already exists");
         }
 
-       Users users =Users.builder()
+        Users users = Users.builder()
                 .userName(request.getName())
                 .userEmail(request.getEmail())
-                .userPassword(request.getPassword())
+                .userPassword(passwordEncoder.encode(request.getPassword()))
                 .userRole(request.getRole())
                 .build();
 
-        Users savedUsers= userRepository.save(users);
+        Users savedUsers = userRepository.save(users);
 
         return UserResponse.builder().id(savedUsers.getUserId()).name(savedUsers.getUserName())
                 .email(savedUsers.getUserEmail()).role(savedUsers.getUserRole()).build();
@@ -56,9 +65,9 @@ public class UserService {
                 .toList();
     }
 
-    public UserResponse getUserById(Long id){
-        Users user = userRepository.findById(id).orElseThrow(()->new UserNotFoundException
-                ("User not found with this id"+id));
+    public UserResponse getUserById(Long id) {
+        Users user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException
+                ("User not found with this id" + id));
         return UserResponse.builder()
                 .id(user.getUserId())
                 .name(user.getUserName())
@@ -69,14 +78,14 @@ public class UserService {
 
     }
 
-    public  UserResponse updateUser(Long id, UserRequest request){
-            Users user = userRepository.findById(id)
-                    .orElseThrow(()-> new UserNotFoundException("User not found "));
-            user.setUserName(request.getName());
-            user.setUserEmail(request.getEmail());
-            user.setUserPassword(request.getPassword());
-            user.setUserRole(request.getRole());
-            Users updatedUser = userRepository.save(user);
+    public UserResponse updateUser(Long id, UserRequest request) {
+        Users user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found "));
+        user.setUserName(request.getName());
+        user.setUserEmail(request.getEmail());
+        user.setUserPassword(passwordEncoder.encode(request.getPassword()));
+        user.setUserRole(request.getRole());
+        Users updatedUser = userRepository.save(user);
 
 
         return UserResponse.builder()
@@ -88,11 +97,28 @@ public class UserService {
     }
 
 
-    public  void deleteUser(Long id){
-        if(!userRepository.existsById(id)){
-            throw new UserNotFoundException("User not found with id: "+id);
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new UserNotFoundException("User not found with id: " + id);
         }
         userRepository.deleteById(id);
+
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        Users user = userRepository.findByUserEmail(request.getEmail()).orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getUserPassword())) {
+            throw new InvalidCredentialsException("Invalid credentials");
+        }
+
+        return LoginResponse.builder()
+                .id(user.getUserId())
+                .name(user.getUserName())
+                .email(user.getUserEmail())
+                .role(user.getUserRole())
+                .token(jwtService.generateToken(user))
+                .build();
 
     }
 }

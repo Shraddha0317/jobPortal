@@ -54,4 +54,13 @@ public class GlobalExceptionHandler {
         );
 
     }
+
+    @ExceptionHandler(DuplicateApplicationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String,String> handleDuplicateApplication(DuplicateApplicationException exception){
+        return Map.of(
+                "message","Already applied for this job",
+                "status","409"
+        );
+    }
 }

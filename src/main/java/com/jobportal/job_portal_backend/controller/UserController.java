@@ -1,11 +1,14 @@
 package com.jobportal.job_portal_backend.controller;
 
 
+import com.jobportal.job_portal_backend.dto.LoginRequest;
+import com.jobportal.job_portal_backend.dto.LoginResponse;
 import com.jobportal.job_portal_backend.dto.UserRequest;
 import com.jobportal.job_portal_backend.dto.UserResponse;
 import com.jobportal.job_portal_backend.entity.Users;
 import com.jobportal.job_portal_backend.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +28,8 @@ public class UserController {
         return userService.CreateUser(users);
     }
 
+
+    @PreAuthorize("hasRole('RECRUITER')")
     @GetMapping("/getAllUsers")
     public List<UserResponse> getAllUsers(){
         return userService.getAllUsers();
@@ -44,5 +49,12 @@ public class UserController {
     @DeleteMapping("/deleteUser/{id}")
     public void deleteUser( @PathVariable Long id){
         userService.deleteUser(id);
+    }
+
+    @PostMapping("/login")
+    public LoginResponse  login( @Valid @RequestBody LoginRequest request){
+
+       return userService.login(request);
+
     }
 }

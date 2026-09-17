@@ -2,8 +2,10 @@ package com.jobportal.job_portal_backend.controller;
 
 
 import com.jobportal.job_portal_backend.dto.ApplicationResponse;
+import com.jobportal.job_portal_backend.entity.ApplicationStatus;
 import com.jobportal.job_portal_backend.service.ApplicationService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,4 +46,34 @@ public class ApplicationController {
         return applicationService.getMyApplications(email);
     }
 
+    @GetMapping("/recruiter-applications")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public List<ApplicationResponse>getRecruiterApplications(){
+        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
+
+        String email= authentication.getName();
+
+        return applicationService.getRecruiterApplications(email);
+    }
+
+
+
+
+    @PutMapping("/{applicationId}/status")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApplicationResponse updateApplicationStatus(
+            @PathVariable Long applicationId,
+            @RequestParam ApplicationStatus status) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        return applicationService.updateApplicationStatus(
+                applicationId,
+                status,
+                email
+        );
+    }
 }

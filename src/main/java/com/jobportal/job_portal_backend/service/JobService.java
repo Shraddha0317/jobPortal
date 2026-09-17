@@ -11,6 +11,7 @@ import com.jobportal.job_portal_backend.exception.UserNotFoundException;
 import com.jobportal.job_portal_backend.repository.JobRepository;
 import com.jobportal.job_portal_backend.repository.UserRepository;
 import com.jobportal.job_portal_backend.specification.JobSpecification;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -150,9 +151,32 @@ public class JobService {
     }
 
 
+    @PreAuthorize("hasRole('RECRUITER')")
+    public JobResponse updateJob(Long jobId, JobRequest request, String email) {
 
+        Users recruiter = userRepository.findByUserEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException("Recruiter not found"));
 
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() ->
+                        new JobNotFoundException("Job not found"));
 
+        if (!job.getRecruiter().getUserId().equals(recruiter.getUserId())) {
+            throw new JobNotFoundException(
+                    "Job not found or you are not authorized to update this job");
+        }
 
+        job.setTitle(request.getTitle());
+        job.setDescription(request.getDescription());
+        job.setCompanyName(request.getCompanyName());
+        job.setLocation(request.getLocation());
+        job.setSalary(request.getSalary());
+        job.setJobType(request.getJobType());
+        job.setExperienceRequired(request.getExperienceRequired());
 
+        Job updatedJob = jobRepository.save(job);
+
+        return mapToResponse(updatedJob);
+    }
 }

@@ -4,6 +4,8 @@ package com.jobportal.job_portal_backend.exception;
 import com.jobportal.job_portal_backend.exception.InvalidApplicationStatusException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -107,6 +109,25 @@ public class GlobalExceptionHandler {
 
         return Map.of(
                 "message", "Invalid application status. Allowed values: APPLIED, UNDER_REVIEW, SHORTLISTED, REJECTED, HIRED",
+                "status", "400"
+        );
+    }
+
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleValidationException(
+            MethodArgumentNotValidException exception) {
+
+        String message = exception.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .findFirst()
+                .map(FieldError::getDefaultMessage)
+                .orElse("Validation failed");
+
+        return Map.of(
+                "message", message,
                 "status", "400"
         );
     }

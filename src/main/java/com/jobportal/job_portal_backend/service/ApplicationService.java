@@ -2,12 +2,8 @@ package com.jobportal.job_portal_backend.service;
 
 
 import com.jobportal.job_portal_backend.dto.ApplicationResponse;
-import com.jobportal.job_portal_backend.entity.Application;
-import com.jobportal.job_portal_backend.entity.Job;
-import com.jobportal.job_portal_backend.entity.Users;
-import com.jobportal.job_portal_backend.exception.DuplicateApplicationException;
-import com.jobportal.job_portal_backend.exception.JobNotFoundException;
-import com.jobportal.job_portal_backend.exception.UserNotFoundException;
+import com.jobportal.job_portal_backend.entity.*;
+import com.jobportal.job_portal_backend.exception.*;
 import com.jobportal.job_portal_backend.repository.ApplicationRepository;
 import com.jobportal.job_portal_backend.repository.JobRepository;
 import com.jobportal.job_portal_backend.repository.UserRepository;
@@ -50,15 +46,7 @@ public class ApplicationService {
        Application SavedApplication= applicationRepository.save(application);
       //  System.out.println("APPLICATION ID = " + SavedApplication.getApplicationId());
 
-        return ApplicationResponse.builder()
-                .applicationId(SavedApplication.getApplicationId())
-                .jobId(SavedApplication.getJob().getJobId())
-                .applicantId(SavedApplication.getApplicant().getUserId())
-                .applicantName(SavedApplication.getApplicant().getUserName())
-                .jobTitle(SavedApplication.getJob().getTitle())
-                .status(SavedApplication.getStatus())
-                .appliedAt(SavedApplication.getAppliedAt())
-                .build();
+        return mapToResponse(SavedApplication);
 
     }
 
@@ -72,15 +60,85 @@ public class ApplicationService {
 
         return applicationRepository.findByApplicantUserId(applicant.getUserId())
                 .stream()
-                .map(application -> ApplicationResponse.builder()
-                        .applicationId(application.getApplicationId())
-                        .jobId(application.getJob().getJobId())
-                        .jobTitle(application.getJob().getTitle())
-                        .applicantId(application.getApplicant().getUserId())
-                        .applicantName(application.getApplicant().getUserName())
-                        .status(application.getStatus())
-                        .appliedAt(application.getAppliedAt())
-                        .build())
-                .toList();
+                .map(this::mapToResponse).toList();
     }
+
+    public List<ApplicationResponse>getRecruiterApplications(String email){
+        Users recruiter= userRepository.findByUserEmail(email).orElseThrow(()->new UserNotFoundException("Recruiter not found with email"+ email));
+        System.out.println(recruiter.getUserId());
+        return applicationRepository.findByJobRecruiterUserId(recruiter.getUserId()).stream()
+                .map(this::mapToResponse).toList();
+
+
+    }
+
+
+    public  ApplicationResponse updateApplicationStatus(Long applicationId, ApplicationStatus status, String email){
+
+        Users recruiter = userRepository.findByUserEmail(email).orElseThrow(()-> new UserNotFoundException("Recruiter not found with email"+ email));
+
+       Application application= applicationRepository.findByApplicationIdAndJobRecruiterUserId(applicationId,recruiter.getUserId()).orElseThrow(()-> new ApplicationNotFoundException("Application not found or you are not authorized to update this application"));
+
+
+
+        validateStatusTransition(
+                application.getStatus(),
+                status
+        );
+
+        application.setStatus(status);
+
+
+        Application updatedApplication =
+                applicationRepository.save(application);
+
+       return mapToResponse(updatedApplication);
+
+
+    }
+
+    private void validateStatusTransition(
+            ApplicationStatus currentStatus,
+            ApplicationStatus newStatus) {
+
+        if (currentStatus == ApplicationStatus.APPLIED
+                && newStatus != ApplicationStatus.UNDER_REVIEW) {
+            throw new InvalidApplicationStatusException(
+                    "Application must move to UNDER_REVIEW first");
+        }
+
+        if (currentStatus == ApplicationStatus.UNDER_REVIEW
+                && newStatus != ApplicationStatus.SHORTLISTED
+                && newStatus != ApplicationStatus.REJECTED) {
+            throw new InvalidApplicationStatusException(
+                    "Application can only be SHORTLISTED or REJECTED");
+        }
+
+        if (currentStatus == ApplicationStatus.SHORTLISTED
+                && newStatus != ApplicationStatus.HIRED
+                && newStatus != ApplicationStatus.REJECTED) {
+            throw new InvalidApplicationStatusException(
+                    "Application can only be HIRED or REJECTED");
+        }
+
+        if (currentStatus == ApplicationStatus.REJECTED
+                || currentStatus == ApplicationStatus.HIRED) {
+            throw new InvalidApplicationStatusException(
+                    "Application status cannot be changed");
+        }
+    }
+
+    private ApplicationResponse mapToResponse(Application application) {
+
+        return ApplicationResponse.builder()
+                .applicationId(application.getApplicationId())
+                .jobId(application.getJob().getJobId())
+                .jobTitle(application.getJob().getTitle())
+                .applicantId(application.getApplicant().getUserId())
+                .applicantName(application.getApplicant().getUserName())
+                .status(application.getStatus())
+                .appliedAt(application.getAppliedAt())
+                .build();
+    }
+
 }

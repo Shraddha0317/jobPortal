@@ -7,6 +7,9 @@ import com.jobportal.job_portal_backend.entity.JobType;
 import com.jobportal.job_portal_backend.service.JobService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -59,5 +62,22 @@ public class JobController {
                 page,
                 size
         );
+    }
+
+
+
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public JobResponse updateJob(
+            @PathVariable Long id,
+            @Valid @RequestBody JobRequest request) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        return jobService.updateJob(id, request, email);
     }
 }

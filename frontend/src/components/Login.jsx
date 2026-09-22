@@ -30,13 +30,6 @@ setUser(response.data);
   console.log("Authenticated:", true);
   setUser(response.data);
 
-  api.get("/api/applications/my-applications")
-    .then((response) => {
-      console.log("My applications:", response.data);
-    })
-    .catch((error) => {
-      console.error("Applications request failed:", error);
-    });
 })
 
 }

@@ -1,0 +1,13 @@
+import api from "./api";
+
+export function getAllJobs() {
+  return api.get("/api/jobs");
+}
+export function getJobById(jobId) {
+  return api.get(`/api/jobs/${jobId}`);
+}
+export function searchJobs(params) {
+  return api.get("/api/jobs/search", {
+    params: params
+  });
+}

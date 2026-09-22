@@ -4,68 +4,73 @@ import {
   updateApplicationStatus
 } from "../services/applicationService";
 
-function RecruiterApplicationsPage() {
+const statusColors = {
+  APPLIED: "status-applied",
+  UNDER_REVIEW: "status-review",
+  SHORTLISTED: "status-shortlisted",
+  REJECTED: "status-rejected",
+  HIRED: "status-hired",
+};
 
+function RecruiterApplicationsPage() {
   const [applications, setApplications] = useState([]);
 
   useEffect(() => {
     getRecruiterApplications()
-      .then((response) => {
-        console.log("Recruiter applications:", response.data);
-        setApplications(response.data);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch recruiter applications:", error);
-      });
+      .then((response) => setApplications(response.data))
+      .catch((error) => console.error("Failed to fetch recruiter applications:", error));
   }, []);
 
-
   function handleStatusChange(applicationId, newStatus) {
-  updateApplicationStatus(applicationId, newStatus)
-    .then((response) => {
-      setApplications((currentApplications) =>
-        currentApplications.map((application) =>
-          application.applicationId === applicationId
-            ? { ...application, status: response.data.status }
-            : application
-        )
-      );
-    })
-    .catch((error) => {
-      console.error("Failed to update application status:", error);
-    });
-}
+    updateApplicationStatus(applicationId, newStatus)
+      .then((response) => {
+        setApplications((prev) =>
+          prev.map((app) =>
+            app.applicationId === applicationId
+              ? { ...app, status: response.data.status }
+              : app
+          )
+        );
+      })
+      .catch((error) => console.error("Failed to update status:", error));
+  }
 
   return (
-    <div>
-      <h1>Recruiter Applications</h1>
+    <div className="page-container">
+      <h1 className="page-title">Applications Received</h1>
 
       {applications.length === 0 ? (
-        <p>No applications found.</p>
+        <div className="empty-state">
+          <span className="empty-icon">📩</span>
+          <p>No applications received yet.</p>
+        </div>
       ) : (
-        applications.map((application) => (
-          <div key={application.applicationId}>
-            <h3>{application.jobTitle}</h3>
-            <p>Applicant: {application.applicantName}</p>
-            <p>Status: {application.status}</p>
-<select
-  value={application.status}
-  onChange={(e) =>
-  handleStatusChange(
-    application.applicationId,
-    e.target.value
-  )
-}
->
-  <option value="APPLIED">APPLIED</option>
-  <option value="UNDER_REVIEW">UNDER_REVIEW</option>
-  <option value="SHORTLISTED">SHORTLISTED</option>
-  <option value="REJECTED">REJECTED</option>
-  <option value="HIRED">HIRED</option>
-</select>
-
-          </div>
-        ))
+        <div className="applications-list">
+          {applications.map((application) => (
+            <div key={application.applicationId} className="application-card">
+              <div className="application-info">
+                <h3>{application.jobTitle}</h3>
+                <p className="application-company">👤 {application.applicantName}</p>
+              </div>
+              <div className="application-actions">
+                <span className={`status-badge ${statusColors[application.status] || ""}`}>
+                  {application.status?.replace("_", " ")}
+                </span>
+                <select
+                  className="status-select"
+                  value={application.status}
+                  onChange={(e) => handleStatusChange(application.applicationId, e.target.value)}
+                >
+                  <option value="APPLIED">Applied</option>
+                  <option value="UNDER_REVIEW">Under Review</option>
+                  <option value="SHORTLISTED">Shortlisted</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="HIRED">Hired</option>
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -108,7 +108,7 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException exception) {
 
         return Map.of(
-                "message", "Invalid application status. Allowed values: APPLIED, UNDER_REVIEW, SHORTLISTED, REJECTED, HIRED",
+                "message", "Invalid value for parameter: " + exception.getName(),
                 "status", "400"
         );
     }

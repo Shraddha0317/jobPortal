@@ -21,21 +21,56 @@ function handleLogout() {
 }
 
   
-  return (
-    <nav>
-      <h2>{title}</h2>
+ return (
+  <nav className="navbar">
+
+    <div className="navbar-brand">
+      <Link to="/">{title}</Link>
+    </div>
+
+    <div className="navbar-links">
 
       <Link to="/">Home</Link>
+
       <Link to="/jobs">Jobs</Link>
-      {!isAuthenticated && <Link to="/login">Login</Link>}
-      {!isAuthenticated && <Link to="/register">Register</Link>}
-      {isAuthenticated && <span>Welcome, {user?.name}</span>} 
+
+      {isAuthenticated && user?.role === "APPLICANT" && (
+        <Link to="/my-applications">My Applications</Link>
+      )}
+
+      {isAuthenticated && user?.role === "RECRUITER" && (
+        <Link to="/recruiter-applications">
+          Applications
+        </Link>
+      )}
+
+      {!isAuthenticated && (
+        <Link to="/login">Login</Link>
+      )}
+
+      {!isAuthenticated && (
+        <Link to="/register">Register</Link>
+      )}
 
       {isAuthenticated && (
-  <button onClick={handleLogout}>Logout</button>
-)}
-    </nav>
-  );
+        <>
+          <span className="welcome">
+            Welcome, {user?.name}
+          </span>
+
+          <button
+            className="logout-button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        </>
+      )}
+
+    </div>
+
+  </nav>
+);
 }
 
 export default Navbar;
